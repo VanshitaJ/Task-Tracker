@@ -7,9 +7,14 @@ A small full-stack task manager. Create tasks, set a priority, move them through
 - **Database:** MongoDB (local or Atlas)
 - **Tests:** Node's built-in test runner + Supertest
 
+## Screenshot
+
+![Task Tracker UI](docs/screenshots/app-ui.png)
+
 ```
 task-tracker/
 ├── client/   # React SPA (Vite)
+├── docs/     # README screenshots
 └── server/   # REST API (Express + Mongoose)
     ├── app.js          # Express app, middleware, error handling
     ├── server.js       # DB connection + process entry point
@@ -92,6 +97,10 @@ cd client
 npm run lint
 ```
 
+Expected output of `npm test`:
+
+![Backend test results: 2 passing](docs/screenshots/test-results.png)
+
 The backend tests use `node --test` with Supertest against the Express app. They **do not need a database**: validation failures happen before any DB call, and the status-update test stubs `Task.findByIdAndUpdate`. Current coverage:
 
 1. Creating a task with a title over 100 characters returns `400`.
@@ -145,7 +154,7 @@ curl -X DELETE http://localhost:5000/tasks/<id>
 
 - **No authentication or authorization** (out of scope; see below).
 - **No pagination or search.** `GET /tasks` returns every task.
-- **Status filter runs client-side.** The API supports `?status=`, but the UI filters the already-loaded list.
+- **Status filtering runs server-side.** Selecting a status requests `/tasks?status=...`; the UI renders the filtered response from the API.
 - **No editing** of title, description or priority.
 - **Limited test coverage:** two backend tests, no frontend tests, no integration tests against a real database.
 - **CORS is wide open** (`cors()` with defaults) and there is **no rate limiting**, request-size tuning or security headers.
@@ -171,7 +180,7 @@ curl -X DELETE http://localhost:5000/tasks/<id>
 
 1. **Authentication and per-user data** (see below).
 2. **Edit tasks** (title, description, priority), plus due dates, tags and sorting.
-3. **Server-side filtering, search and pagination**; make the UI use `?status=`.
+3. **Search and pagination** for larger task collections.
 4. **Broader tests:** more API cases (invalid ids, 404s, filters, delete), tests against `mongodb-memory-server`, component tests with Vitest + React Testing Library, and an end-to-end smoke test (Playwright).
 5. **Input hardening:** `helmet`, rate limiting, a restrictive CORS allow-list, and a schema validator such as Zod or Joi.
 6. **Optimistic UI updates** with rollback, and a soft-delete / undo for removed tasks.

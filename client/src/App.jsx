@@ -11,6 +11,7 @@ import TaskDetailsModal from './components/TaskDetailsModal'
 
 function App() {
   const [tasks, setTasks] = useState([])
+  const [allTasks, setAllTasks] = useState([])
   const [filter, setFilter] = useState('All tasks')
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
@@ -21,12 +22,14 @@ function App() {
   const [notification, setNotification] = useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
 
-  const loadTasks = async (showMessage = true) => {
+  const loadTasks = async (status = filter, showMessage = true) => {
     setLoading(true)
     setError('')
     try {
-      const result = await request('/tasks')
+      const query = status === 'All tasks' ? '' : `?status=${encodeURIComponent(status)}`
+      const result = await request(`/tasks${query}`)
       setTasks(result.tasks)
+      if (status === 'All tasks') setAllTasks(result.tasks)
       if (showMessage) setNotification({ type: 'success', message: result.message })
     } catch (loadError) {
       setError(loadError.message)
@@ -42,6 +45,7 @@ function App() {
         const result = await request('/tasks')
         if (active) {
           setTasks(result.tasks)
+          setAllTasks(result.tasks)
           setNotification({ type: 'success', message: result.message })
         }
       } catch (loadError) {
@@ -61,20 +65,18 @@ function App() {
   }, [notification])
 
   const counts = useMemo(() => ({
-    total: tasks.length,
-    todo: tasks.filter((task) => task.status === 'To Do').length,
-    active: tasks.filter((task) => task.status === 'In Progress').length,
-    done: tasks.filter((task) => task.status === 'Done').length,
-  }), [tasks])
+    total: allTasks.length,
+    todo: allTasks.filter((task) => task.status === 'To Do').length,
+    active: allTasks.filter((task) => task.status === 'In Progress').length,
+    done: allTasks.filter((task) => task.status === 'Done').length,
+  }), [allTasks])
 
-  const handleFilter = (value) => {
-    setFilter(value === 'All tasks' ? 'All tasks' : value)
-    setNotification({ type: 'success', message: value === 'All tasks' ? 'Showing all tasks.' : `Showing ${value.toLowerCase()} tasks.` })
+  const handleFilter = async (value) => {
+    const nextFilter = value === 'All tasks' ? 'All tasks' : value
+    setFilter(nextFilter)
+    await loadTasks(nextFilter, false)
+    setNotification({ type: 'success', message: nextFilter === 'All tasks' ? 'Showing all tasks.' : `Showing ${nextFilter.toLowerCase()} tasks.` })
   }
-
-  const visibleTasks = filter === 'All tasks'
-    ? tasks
-    : tasks.filter((task) => task.status === filter)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -95,7 +97,11 @@ function App() {
         body: JSON.stringify({ ...form, title: form.title.trim() }),
       })
       setForm(emptyForm)
-      await loadTasks(false)
+      await loadTasks(filter, false)
+      if (filter !== 'All tasks') {
+        const allTasksResult = await request('/tasks')
+        setAllTasks(allTasksResult.tasks)
+      }
       setNotification({ type: 'success', message: result.message })
     } catch (saveError) {
       setFormError(saveError.message)
@@ -113,7 +119,8 @@ function App() {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       })
-      setTasks((current) => current.map((task) => task._id === result.task._id ? result.task : task))
+      setAllTasks((current) => current.map((task) => task._id === result.task._id ? result.task : task))
+      await loadTasks(filter, false)
       setNotification({ type: 'success', message: result.message })
     } catch (updateError) {
       setError(updateError.message)
@@ -128,7 +135,8 @@ function App() {
     setError('')
     try {
       const result = await request(`/tasks/${task._id}`, { method: 'DELETE' })
-      setTasks((current) => current.filter((item) => item._id !== task._id))
+      setAllTasks((current) => current.filter((item) => item._id !== task._id))
+      await loadTasks(filter, false)
       setNotification({ type: 'success', message: result?.message || 'Task deleted successfully.' })
     } catch (deleteError) {
       setError(deleteError.message)
@@ -154,7 +162,7 @@ function App() {
             onRetry={() => loadTasks()}
             onStatusChange={updateStatus}
             onSelect={setSelectedTask}
-            tasks={visibleTasks}
+            tasks={tasks}
           />
           <NewTaskForm form={form} formError={formError} onChange={setForm} onSubmit={handleSubmit} saving={saving} />
         </section>
