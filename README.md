@@ -207,6 +207,68 @@ Authentication and cloud deployment are intentionally out of scope for this assi
 - Set `owner` from the verified token on create, never from the request body.
 - For teams or shared tasks, add roles (e.g. `admin`, `member`) or a membership collection and check them in middleware.
 
+  ## Production Deployment
+
+1. **Database — MongoDB Atlas**
+
+   * Use MongoDB Atlas for the production database instead of a local MongoDB instance.
+   * Store the production connection string securely as `MONGODB_URI` in the backend environment variables.
+   * Do not commit `.env` files or database credentials to Git.
+
+2. **Backend — Node.js + Express**
+
+   * Deploy the `server/` application to a Node.js-compatible hosting platform.
+   * Configure `MONGODB_URI` and `PORT` as environment variables.
+   * Start the production API using:
+
+     ```bash
+     cd server
+     npm install
+     npm start
+     ```
+   * Verify deployment using the `/health` endpoint.
+
+3. **Frontend — React + Vite**
+
+   * Configure the production API URL using:
+
+     ```env
+     VITE_API_URL=https://<your-backend-domain>
+     ```
+   * Build the frontend:
+
+     ```bash
+     cd client
+     npm install
+     npm run build
+     ```
+   * Deploy the generated `client/dist` directory to a static hosting platform.
+
+4. **Production Configuration & Security**
+
+   * Use HTTPS for both frontend and backend.
+   * Restrict CORS to the deployed frontend domain instead of using unrestricted `cors()`.
+   * Keep all secrets and configuration values in environment variables or the hosting platform's secret manager.
+   * Use appropriate MongoDB network access and least-privilege database credentials.
+
+5. **Production Architecture**
+
+   ```text
+   User Browser
+        │
+        ▼
+   React + Vite Frontend
+        │ HTTPS REST API
+        ▼
+   Node.js + Express Backend
+        │
+        ▼
+   MongoDB Atlas
+   ```
+
+   * Frontend and backend are deployed independently and communicate through the REST API.
+   * Before public deployment, authentication, authorization, rate limiting, security headers, logging, and other production hardening should be added.
+
 **Supporting controls**
 
 - Restrict CORS to the production frontend origin only.
