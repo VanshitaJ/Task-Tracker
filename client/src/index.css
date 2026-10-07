@@ -1,0 +1,4 @@
+html { background: #f7f7f3; height: 100%; overflow: hidden; }
+body { margin: 0; min-width: 320px; height: 100%; overflow: hidden; }
+#root { height: 100%; overflow: hidden; }
+body, button, input, textarea, select { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
